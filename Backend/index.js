@@ -11,7 +11,6 @@ const trailerRoutes = require("./routes/trailerRoutes");
 
 
 const app = express();
-
 // ------------------------------------------
 // 🟢 Database Connection
 // ------------------------------------------
@@ -64,4 +63,4 @@ app.use("/api/trailers", trailerRoutes);
 // 🟢 Start Server
 // ------------------------------------------
 const PORT = process.env.PORT ;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
