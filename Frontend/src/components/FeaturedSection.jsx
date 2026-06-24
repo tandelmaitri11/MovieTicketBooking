@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MovieCard from "./MovieCard";
-import axios from "axios";
+import api from "../api/api";
 
 const FeaturedSection = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const FeaturedSection = () => {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/movies");
+        const res = await api.get("/api/movies");
         setMovies(res.data);
       } catch (error) {
         console.error("Failed to fetch movies", error);

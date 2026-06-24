@@ -7,14 +7,8 @@ const trailerSchema = new mongoose.Schema(
       ref: "Movie",
       required: true,
     },
-    image: {
-      type: String,
-      required: true,
-    },
-    videoUrl: {
-      type: String,
-      required: true,
-    },
+    image: { type: String, default: "" }, // thumbnail (uploaded or youtube thumb)
+    videoUrl: { type: String, required: true }, // youtube url OR /uploads/videos/xxx.mp4
   },
   { timestamps: true }
 );

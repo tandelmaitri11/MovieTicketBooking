@@ -23,6 +23,22 @@ const movieSchema = new mongoose.Schema(
         name: String,
       },
     ],
+    casts: [
+      {
+        name: String,
+        profile_path: String,
+        role: String,
+      },
+    ],
+    crew: [
+      {
+        name: String,
+        profile_path: String,
+        role: String,
+      },
+    ],
+    director: [String],
+    producer: [String],
     release_date: String,
     original_language: String,
     tagline: String,

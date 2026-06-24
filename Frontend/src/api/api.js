@@ -1,12 +1,12 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000/auth", // backend auth route
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
 });
 
 // Interceptor to attach access token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+  const token = localStorage.getItem("authToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

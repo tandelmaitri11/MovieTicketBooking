@@ -1,12 +1,21 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
-const userSchema = new mongoose.Schema({
-  email: { type: String, unique: true, sparse: true },
-  phone: { type: String, unique: true, sparse: true },
-  password: { type: String },
-  googleId: { type: String }, // for Google login
-});
+const userSchema = new mongoose.Schema(
+  {
+    email: { type: String, unique: true, sparse: true },
+    phone: { type: String, unique: true, sparse: true },
+    password: { type: String },
+    googleId: { type: String }, // for Google login
+    name: { type: String, trim: true },
+    profilePic: { type: String, trim: true },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+    resetOtpHash: { type: String },
+    resetOtpExpires: { type: Date },
+  },
+  { timestamps: true }
+);
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {

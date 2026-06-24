@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import MovieCard from "../components/MovieCard";
-import axios from "axios";
+import api from "../api/api";
 
 const Movies = () => {
   const [movies, setMovies] = useState([]);
@@ -9,7 +9,7 @@ const Movies = () => {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/movies");
+        const res = await api.get("/api/movies");
         setMovies(res.data);
       } catch (err) {
         console.error("Failed to fetch movies", err);

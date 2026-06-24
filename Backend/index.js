@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -8,6 +9,8 @@ require("dotenv").config();
 
 const movieRoutes = require("./routes/movieRoutes")
 const trailerRoutes = require("./routes/trailerRoutes");
+const showRoutes = require("./routes/showRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
 
 const app = express();
@@ -42,6 +45,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ------------------------------------------
 // 🟢 Routes
@@ -58,6 +62,8 @@ app.get("/protected", protect, (req, res) => {
 
 app.use("/api/movies",movieRoutes);
 app.use("/api/trailers", trailerRoutes);
+app.use("/api/shows", showRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 // ------------------------------------------
 // 🟢 Start Server

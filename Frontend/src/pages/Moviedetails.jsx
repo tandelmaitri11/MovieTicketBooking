@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import axios from 'axios'
 import { Heart, PlayCircleIcon, StarIcon } from 'lucide-react'
+import api from '../api/api'
+import buildShowDateMap from '../lib/showDateMap'
 import timeFormat from '../lib/timeFormat'
+import getMediaUrl from '../lib/mediaUrl'
 import DateSelect from '../components/DateSelect'
 import MovieCard from '../components/MovieCard'
 import { Loading } from '../components/Loading'
@@ -14,24 +16,28 @@ const Moviedetails = () => {
   const [show, setShow] = useState(null)
   const [relatedMovies, setRelatedMovies] = useState([])
   const [loading, setLoading] = useState(true)
+  const baseUrl = api.defaults.baseURL || ""
+  const defaultPersonImg = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=200"
 
-  // 🔐 Login check
+  // dY"? Login check
   const isLoggedIn = !!localStorage.getItem("authToken")
 
-  // 🎬 GET MOVIE BY ID (BACKEND)
+  // dYZŞ GET MOVIE BY ID (BACKEND)
   const getShow = async () => {
     try {
-      const res = await axios.get(`http://localhost:3000/api/movies/${id}`)
+      const [movieRes, showsRes, allMoviesRes] = await Promise.all([
+        api.get(`/api/movies/${id}`),
+        api.get(`/api/shows/movie/${id}`),
+        api.get("/api/movies"),
+      ])
 
       setShow({
-        movie: res.data,
-        datTime: [] // later replace with show timing API
+        movie: movieRes.data,
+        datTime: buildShowDateMap(showsRes.data),
       })
 
-      // 🔁 fetch other movies
-      const allMovies = await axios.get(`http://localhost:3000/api/movies`)
-      setRelatedMovies(allMovies.data.filter(m => m._id !== id))
-
+      // dY"? fetch other movies
+      setRelatedMovies(allMoviesRes.data.filter(m => m._id !== id))
     } catch (err) {
       console.error("Failed to load movie", err)
     } finally {
@@ -43,7 +49,7 @@ const Moviedetails = () => {
     getShow()
   }, [id])
 
-  // 🎟 Buy ticket handler
+  // dYZY Buy ticket handler
   const handleBuyTickets = () => {
     if (!isLoggedIn) {
       localStorage.setItem("redirectAfterLogin", `/movies/${id}`)
@@ -64,7 +70,7 @@ const Moviedetails = () => {
       <div className='flex flex-col md:flex-row gap-8 max-w-6xl mx-auto'>
 
         <img
-          src={show.movie.poster_path}
+          src={getMediaUrl(show.movie.poster_path, baseUrl)}
           alt=""
           className='max-md:mx-auto rounded-xl h-104 max-w-70 object-cover'
         />
@@ -88,10 +94,21 @@ const Moviedetails = () => {
           </p>
 
           <p>
-            {timeFormat(show.movie.runtime)} ·{" "}
-            {show.movie.genres.map(g => g.name).join(", ")} ·{" "}
+            {timeFormat(show.movie.runtime)} Aú{" "}
+            {show.movie.genres.map(g => g.name).join(", ")} Aú{" "}
             {show.movie.release_date.split("-")[0]}
           </p>
+
+          {(show.movie.director?.length > 0 || show.movie.producer?.length > 0) && (
+            <div className='text-sm text-gray-300'>
+              {show.movie.director?.length > 0 && (
+                <p>Director: {show.movie.director.join(", ")}</p>
+              )}
+              {show.movie.producer?.length > 0 && (
+                <p>Producer: {show.movie.producer.join(", ")}</p>
+              )}
+            </div>
+          )}
 
           <div className='flex items-center flex-wrap gap-4 mt-4'>
             <button className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 hover:bg-gray-900 transition rounded-md font-medium cursor-pointer'>
@@ -127,10 +144,42 @@ const Moviedetails = () => {
               {show.movie.casts.slice(0, 2).map((cast, index) => (
                 <div key={index} className='flex flex-col items-center'>
                   <img
-                    src={cast.profile_path}
+                    src={getMediaUrl(cast.profile_path, baseUrl) || defaultPersonImg}
                     className='rounded-full h-20 aspect-square object-cover'
+                    alt={cast.name || "Cast"}
+                    onError={(e) => {
+                      e.currentTarget.src = defaultPersonImg
+                    }}
                   />
                   <p className='font-medium text-xs mt-3'>{cast.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* CREW (OPTIONAL) */}
+      {show.movie.crew?.length > 0 && (
+        <>
+          <p className='text-lg font-medium mt-14'>Crew</p>
+
+          <div className='overflow-x-auto no-scroller mt-6 pb-4'>
+            <div className='flex items-center gap-4 w-max px-4'>
+              {show.movie.crew.slice(0, 6).map((member, index) => (
+                <div key={index} className='flex flex-col items-center'>
+                  <img
+                    src={getMediaUrl(member.profile_path, baseUrl) || defaultPersonImg}
+                    className='rounded-full h-16 aspect-square object-cover'
+                    alt={member.name || "Crew"}
+                    onError={(e) => {
+                      e.currentTarget.src = defaultPersonImg
+                    }}
+                  />
+                  <p className='font-medium text-xs mt-3'>{member.name}</p>
+                  {member.role && (
+                    <p className='text-[11px] text-gray-400'>{member.role}</p>
+                  )}
                 </div>
               ))}
             </div>
