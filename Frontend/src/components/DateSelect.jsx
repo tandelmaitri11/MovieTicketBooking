@@ -7,6 +7,27 @@ const DateSelect = ({ dateTime, id }) => {
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const dateOptions = Object.keys(dateTime).sort((a, b) => new Date(a) - new Date(b))
+
+  const isDateDisabled = (date) => {
+    const dateValue = new Date(date)
+    dateValue.setHours(0, 0, 0, 0)
+
+    if (dateValue < today) return true
+
+    const shows = dateTime[date] || []
+    const now = new Date()
+    return shows.every((item) => new Date(item.time) <= now)
+  }
+
+  const selectDate = (date) => {
+    if (isDateDisabled(date)) return
+    setSelected(date)
+  }
+
   const onBookHandler = () => {
     // 🔐 Login check
     const isLoggedIn = !!localStorage.getItem("authToken")
@@ -15,7 +36,7 @@ const DateSelect = ({ dateTime, id }) => {
       // Save full redirect path (movie + selected date if exists)
       const redirectPath = selected
         ? `/movies/${id}/${selected}`
-        : `/movie/${id}`
+        : `/movies/${id}`
 
       localStorage.setItem("redirectAfterLogin", redirectPath)
       navigate("/login")
@@ -40,22 +61,32 @@ const DateSelect = ({ dateTime, id }) => {
             <ChevronLeftIcon width={28} />
 
             <span className='grid grid-cols-3 md:flex flex-wrap md:max-w-lg gap-4'>
-              {Object.keys(dateTime).map((date) => (
-                <button
-                  key={date}
-                  onClick={() => setSelected(date)}
-                  className={`flex flex-col items-center justify-center h-14 w-14 rounded cursor-pointer
-                    ${selected === date
-                      ? "bg-primary text-white"
-                      : "border border-primary/70"
-                    }`}
-                >
-                  <span>{new Date(date).getDate()}</span>
-                  <span>
-                    {new Date(date).toLocaleDateString("en-US", { month: "short" })}
-                  </span>
-                </button>
-              ))}
+              {dateOptions.map((date) => {
+                const disabled = isDateDisabled(date)
+                return (
+                  <button
+                    key={date}
+                    type='button'
+                    onClick={() => selectDate(date)}
+                    disabled={disabled}
+                    className={`flex flex-col items-center justify-center h-14 w-14 rounded transition
+                      ${selected === date
+                        ? "bg-primary text-white"
+                        : disabled
+                        ? "border border-gray-500 bg-gray-900 text-gray-400 cursor-not-allowed"
+                        : "border border-primary/70 hover:bg-primary/10"
+                      }`}
+                  >
+                    <span>{new Date(date).getDate()}</span>
+                    <span>
+                      {new Date(date).toLocaleDateString("en-US", { month: "short" })}
+                    </span>
+                    {disabled && (
+                      <span className='text-[10px] text-red-300 mt-1'>Expired</span>
+                    )}
+                  </button>
+                )
+              })}
             </span>
 
             <ChevronRightIcon width={28} />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Loading } from '../components/Loading'
 import { ArrowRightIcon, ClockIcon } from 'lucide-react'
@@ -23,6 +23,7 @@ const SeatLayout = () => {
   const [customerName, setCustomerName] = useState("")
   const [customerEmail, setCustomerEmail] = useState(localStorage.getItem("userEmail") || "")
   const [customerPhone, setCustomerPhone] = useState("")
+  const [now, setNow] = useState(new Date())
 
   const navigate = useNavigate()
   const getShow = async () =>{
@@ -41,9 +42,24 @@ const SeatLayout = () => {
     }
   }
 
+  const loadRazorpayScript = async () => {
+    if (window.Razorpay) return true;
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handleSeatClick = (seatId) =>{
     if(!selectedTime){
       return toast("please select time first")
+    }
+
+    if (selectedTime.isExpired) {
+      return toast("This showtime has already ended")
     }
 
     const occupiedSeats = new Set(Object.keys(selectedTime?.occupiedSeats || {}))
@@ -55,6 +71,9 @@ const SeatLayout = () => {
   }
 
   const handleCustomerFormSubmit = async () => {
+    if (!selectedTime || selectedTime.isExpired) {
+      return toast("Cannot book an expired showtime")
+    }
     if (!customerName.trim()) return toast("Please enter your name")
     if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) return toast("Please enter a valid email")
     if (!customerPhone.trim()) return toast("Please enter your phone number")
@@ -81,6 +100,7 @@ const SeatLayout = () => {
 
   const handleProceedToCheckout = async () => {
     if (!selectedTime) return toast("Please pick a showtime first")
+    if (selectedTime.isExpired) return toast("Cannot checkout for an expired showtime")
     if (selectedSeats.length === 0) return toast("Select at least one seat")
 
     const token = localStorage.getItem("authToken")
@@ -180,7 +200,23 @@ const SeatLayout = () => {
     setSelectedSeats([])
   }, [selectedTime])
 
-  const showTimes = show?.dateTime?.[date] || []
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const showTimes = useMemo(() => {
+    if (!show?.dateTime?.[date]) return []
+    return show.dateTime[date].map((item) => ({
+      ...item,
+      isExpired: new Date(item.time) <= now,
+    }))
+  }, [show?.dateTime, date, now])
+
+  const selectedTimeExpired = Boolean(selectedTime && new Date(selectedTime.time) <= now)
 
   return  show ? (
     <div className='flex flex-col md:flex-row px-6 md:px-16 lg:px-40 py-30 md:pt-50'>
@@ -189,9 +225,13 @@ const SeatLayout = () => {
       <p className='text-lg font-semibold px-6'>Available Timings</p>
       <div className='mt-5 space-y-1'>
         {showTimes.map((item)=>(
-          <div  key={item.time} onClick={()=> setSelectedTime(item)} className={`flex items-center gap-2 px-6 py-2 w-max rounded-r-md cursor-pointer transition  ${selectedTime?.time === item.time ? "bg-primary text-white" : "hover:bg-primary/20"} `}>
+          <div
+            key={item.time}
+            onClick={() => !item.isExpired && setSelectedTime(item)}
+            className={`flex items-center gap-2 px-6 py-2 w-max rounded-r-md transition ${item.isExpired ? "bg-gray-600 text-gray-300 cursor-not-allowed" : selectedTime?.time === item.time ? "bg-primary text-white" : "cursor-pointer hover:bg-primary/20"}`}>
             <ClockIcon className='w-4 h-4'/>
             <p className='text-sm'>{ isoTimeFormat(item.time)}</p>
+            {item.isExpired && <span className='ml-2 text-xs text-red-300'>Expired</span>}
           </div>
         ))}
         {showTimes.length === 0 && (
@@ -274,7 +314,10 @@ const SeatLayout = () => {
           </div>
         )}
 
-        <button onClick={showCustomerForm ? handleCustomerFormSubmit : handleProceedToCheckout} disabled={checkoutLoading} className='flex items-center gap-1 mt-20 px-10 py-3 text-sm bg-primary hover:bg-primary-dull transition rounded-full font-medium cursor-pointer active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed'>
+        <button
+          onClick={showCustomerForm ? handleCustomerFormSubmit : handleProceedToCheckout}
+          disabled={checkoutLoading || selectedTimeExpired}
+          className={`flex items-center gap-1 mt-20 px-10 py-3 text-sm rounded-full font-medium transition active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${selectedTimeExpired ? 'bg-gray-500 text-gray-200' : 'bg-primary hover:bg-primary-dull'}`}>
           {checkoutLoading ? "Processing..." : showCustomerForm ? "Confirm Booking" : "Pay Now"}
           <ArrowRightIcon  strokeWidth={3} className='w-4 h-4'/>
         </button>

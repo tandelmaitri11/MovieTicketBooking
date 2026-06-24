@@ -40,6 +40,7 @@ const AdminSidebar = () => {
       { name: "Dashboard", path: "/admin", icon: LayoutDashboardIcon },
       { name: "Add Movie", path: "/admin/add-movie", icon: FilmIcon },
       { name: "Add Shows", path: "/admin/add-shows", icon: PlusSquareIcon },
+      { name: "List Movies", path: "/admin/list-movies", icon: FilmIcon },
       { name: "Upload Trailer", path: "/admin/add-trailer", icon: LinkIcon },
       { name: "Manage Users", path: "/admin/manage-users", icon: UsersIcon },
       { name: "List Shows", path: "/admin/list-shows", icon: ListIcon },

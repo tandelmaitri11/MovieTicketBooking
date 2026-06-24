@@ -126,3 +126,54 @@ exports.createMovieUpload = async (req, res) => {
     res.status(400).json({ message: "Failed to create movie" });
   }
 };
+
+exports.updateMovie = async (req, res) => {
+  try {
+    const movieId = req.params.id;
+
+    const genresInput = req.body.genres;
+    const genres =
+      Array.isArray(genresInput)
+        ? genresInput.map((g, idx) => ({ id: Number(g.id) || idx + 1, name: g.name || String(g) }))
+        : typeof genresInput === "string"
+        ? genresInput
+            .split(",")
+            .map((g) => g.trim())
+            .filter(Boolean)
+            .map((name, idx) => ({ id: idx + 1, name }))
+        : [];
+
+    const payload = {
+      ...req.body,
+      runtime: req.body.runtime ? Number(req.body.runtime) : undefined,
+      isActive: req.body.isActive === "true" || req.body.isActive === true,
+      genres,
+      casts: parsePeopleList(req.body.casts),
+      crew: parsePeopleList(req.body.crew),
+      director: parseNameList(req.body.director),
+      producer: parseNameList(req.body.producer),
+    };
+
+    if (req.files?.poster?.[0]) {
+      payload.poster_path = `/uploads/images/${req.files.poster[0].filename}`;
+    }
+
+    if (req.files?.backdrop?.[0]) {
+      payload.backdrop_path = `/uploads/images/${req.files.backdrop[0].filename}`;
+    }
+
+    const movie = await Movie.findByIdAndUpdate(movieId, payload, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found" });
+    }
+
+    res.status(200).json(movie);
+  } catch (error) {
+    console.error("Update movie error:", error);
+    res.status(400).json({ message: error.message || "Failed to update movie" });
+  }
+};

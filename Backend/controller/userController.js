@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const User = require("../Models/User");
+const Movie = require("../Models/Movie");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const crypto = require("crypto");
@@ -58,9 +60,17 @@ exports.signup = async (req, res) => {
 // LOGIN
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, phone, password } = req.body;
+    const query = {};
 
-    const user = await User.findOne({ email });
+    if (email) query.email = email;
+    if (phone) query.phone = phone;
+
+    if (!query.email && !query.phone) {
+      return res.status(400).json({ message: "Email or phone is required" });
+    }
+
+    const user = await User.findOne(query);
     if (!user) return res.status(400).json({ message: "User not found" });
 
     const match = await user.comparePassword(password);
@@ -68,7 +78,7 @@ exports.login = async (req, res) => {
 
     res.json({
       ...generateTokens(user),
-      email: user.email,
+      email: user.email || "",
       isAdmin: isAdminEmail(user.email),
     });
   } catch (err) {
@@ -126,6 +136,76 @@ exports.getMe = async (req, res) => {
     );
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ ...user.toObject(), isAdmin: isAdminEmail(user.email) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// GET FAVORITES
+exports.getFavorites = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).populate("favorites");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user.favorites || []);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ADD FAVORITE
+exports.addFavorite = async (req, res) => {
+  try {
+    const { movieId } = req.body;
+    if (!movieId) return res.status(400).json({ message: "movieId is required" });
+    if (!mongoose.Types.ObjectId.isValid(movieId)) {
+      return res.status(400).json({ message: "Invalid movieId" });
+    }
+
+    const movie = await Movie.findById(movieId);
+    if (!movie) return res.status(404).json({ message: "Movie not found" });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.favorites.some((fav) => fav.toString() === movieId)) {
+      const populated = await user.populate("favorites");
+      return res.json(populated.favorites || []);
+    }
+
+    user.favorites.push(movieId);
+    await user.save();
+    await Movie.findByIdAndUpdate(movieId, { $inc: { vote_count: 1 } });
+    const populated = await user.populate("favorites");
+    res.json(populated.favorites || []);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// REMOVE FAVORITE
+exports.removeFavorite = async (req, res) => {
+  try {
+    const { movieId } = req.params;
+    if (!movieId) return res.status(400).json({ message: "movieId is required" });
+    if (!mongoose.Types.ObjectId.isValid(movieId)) {
+      return res.status(400).json({ message: "Invalid movieId" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const removed = user.favorites.some((fav) => fav.toString() === movieId);
+    user.favorites = user.favorites.filter(
+      (fav) => fav.toString() !== movieId
+    );
+    await user.save();
+    if (removed) {
+      await Movie.findByIdAndUpdate(movieId, {
+        $inc: { vote_count: -1 },
+      });
+    }
+    const populated = await user.populate("favorites");
+    res.json(populated.favorites || []);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String }, // for Google login
     name: { type: String, trim: true },
     profilePic: { type: String, trim: true },
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Movie" }],
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
     resetOtpHash: { type: String },

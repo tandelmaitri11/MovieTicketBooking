@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Heart, PlayCircleIcon, StarIcon } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '../api/api'
+import { assets } from '../assets/assets'
 import buildShowDateMap from '../lib/showDateMap'
 import timeFormat from '../lib/timeFormat'
 import getMediaUrl from '../lib/mediaUrl'
 import DateSelect from '../components/DateSelect'
 import MovieCard from '../components/MovieCard'
+import TrailersSection from '../components/TrailersSection'
 import { Loading } from '../components/Loading'
 
 const Moviedetails = () => {
@@ -16,10 +19,11 @@ const Moviedetails = () => {
   const [show, setShow] = useState(null)
   const [relatedMovies, setRelatedMovies] = useState([])
   const [loading, setLoading] = useState(true)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteIds, setFavoriteIds] = useState([])
   const baseUrl = api.defaults.baseURL || ""
-  const defaultPersonImg = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=200"
+  const defaultPersonImg = assets.profile
 
-  // dY"? Login check
   const isLoggedIn = !!localStorage.getItem("authToken")
 
   // dYZŞ GET MOVIE BY ID (BACKEND)
@@ -48,6 +52,27 @@ const Moviedetails = () => {
   useEffect(() => {
     getShow()
   }, [id])
+
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      if (isLoggedIn) {
+        try {
+          const res = await api.get('/auth/me/favorites')
+          const favorites = Array.isArray(res.data) ? res.data : []
+          setFavoriteIds(favorites.map((fav) => fav._id))
+          setIsFavorite(favorites.some((fav) => fav._id === id))
+          return
+        } catch (err) {
+          console.error('Failed to load favorites', err.response?.data || err.message)
+        }
+      }
+
+      const existing = JSON.parse(localStorage.getItem('favoriteMovies') || '[]')
+      setIsFavorite(existing.some((fav) => fav._id === id))
+    }
+
+    loadFavoriteStatus()
+  }, [id, isLoggedIn])
 
   // dYZY Buy ticket handler
   const handleBuyTickets = () => {
@@ -84,9 +109,12 @@ const Moviedetails = () => {
             {show.movie.title}
           </h1>
 
-          <div className='flex items-center gap-2 text-gray-300'>
+          <div className='flex flex-wrap items-center gap-2 text-gray-300'>
             <StarIcon className="w-5 h-5 text-primary fill-primary" />
-            {show.movie.vote_average.toFixed(1)} User Rating
+            <span>{show.movie.vote_average.toFixed(1)} User Rating</span>
+            <span className='text-sm text-gray-400'>
+              ({show.movie.vote_count?.toLocaleString() || 0} votes)
+            </span>
           </div>
 
           <p className='text-gray-400 mt-2 text-sm leading-tight max-w-xl'>
@@ -111,28 +139,71 @@ const Moviedetails = () => {
           )}
 
           <div className='flex items-center flex-wrap gap-4 mt-4'>
-            <button className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 hover:bg-gray-900 transition rounded-md font-medium cursor-pointer'>
-              <PlayCircleIcon className='w-5 h-5' />
-              Watch Trailer
-            </button>
-
             <button
-              onClick={handleBuyTickets}
-              className={`px-10 py-3 text-sm rounded-md font-medium transition
-                ${isLoggedIn
-                  ? "bg-primary hover:bg-primary-dull cursor-pointer"
-                  : "bg-gray-700 hover:bg-gray-600 cursor-pointer"
-                }`}
-            >
-              {isLoggedIn ? "Buy Tickets" : "Login to Book"}
-            </button>
+            onClick={() => {
+              document
+                .getElementById('movieTrailer')
+                ?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className='flex items-center gap-2 px-7 py-3 text-sm bg-gray-800 hover:bg-gray-900 transition rounded-md font-medium cursor-pointer'
+          >
+            <PlayCircleIcon className='w-5 h-5' />
+            Watch Trailer
+          </button>
 
-            <button className='bg-gray-700 p-2.5 rounded-full'>
-              <Heart className='w-5 h-5' />
-            </button>
-          </div>
+          <button
+            onClick={handleBuyTickets}
+            className={`px-10 py-3 text-sm rounded-md font-medium transition
+              ${isLoggedIn
+                ? 'bg-primary hover:bg-primary-dull cursor-pointer'
+                : 'bg-gray-700 hover:bg-gray-600 cursor-pointer'
+              }`}
+          >
+            {isLoggedIn ? 'Buy Tickets' : 'Login to Book'}
+          </button>
+
+          <button
+            onClick={async () => {
+              if (!show?.movie) return
+
+              if (isLoggedIn) {
+                try {
+                  if (isFavorite) {
+                    const res = await api.delete(`/auth/me/favorites/${show.movie._id}`)
+                    const favorites = Array.isArray(res.data) ? res.data : []
+                    setFavoriteIds(favorites.map((fav) => fav._id))
+                    setIsFavorite(favorites.some((fav) => fav._id === show.movie._id))
+                    toast.success('Removed from favorites')
+                  } else {
+                    const res = await api.post('/auth/me/favorites', {
+                      movieId: show.movie._id,
+                    })
+                    const favorites = Array.isArray(res.data) ? res.data : []
+                    setFavoriteIds(favorites.map((fav) => fav._id))
+                    setIsFavorite(favorites.some((fav) => fav._id === show.movie._id))
+                    toast.success('Added to favorites')
+                  }
+                } catch (err) {
+                  console.error('Failed to update favorite', err.response?.data || err.message)
+                  toast.error(err.response?.data?.message || 'Could not update favorites')
+                }
+              } else {
+                const existing = JSON.parse(localStorage.getItem('favoriteMovies') || '[]')
+                const isFav = existing.some((fav) => fav._id === show.movie._id)
+                const updated = isFav
+                  ? existing.filter((fav) => fav._id !== show.movie._id)
+                  : [...existing, show.movie]
+                localStorage.setItem('favoriteMovies', JSON.stringify(updated))
+                setIsFavorite(!isFav)
+              }
+            }}
+            className={`p-2.5 rounded-full transition ${isFavorite ? 'bg-primary text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+          >
+            <Heart className='w-5 h-5' />
+          </button>
         </div>
       </div>
+    </div>
 
       {/* CAST (OPTIONAL SAFE CHECK) */}
       {show.movie.casts?.length > 0 && (
@@ -189,6 +260,10 @@ const Moviedetails = () => {
 
       {/* BOOKING SECTION */}
       <DateSelect dateTime={show.datTime} id={id} />
+
+      <section id='movieTrailer' className='mt-20'>
+        <TrailersSection movieId={id} />
+      </section>
 
       <p className='text-lg font-medium mt-20 mb-8'>You May Also Like</p>
 

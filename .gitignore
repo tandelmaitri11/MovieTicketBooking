@@ -2,3 +2,4 @@ node_modules
 Backend/uploads
 Backend/uploads/images
 Backend/uploads/videos
+.env

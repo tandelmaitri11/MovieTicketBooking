@@ -34,6 +34,11 @@ const MovieCard = ({ movie }) => {
             {movie.vote_average ? movie.vote_average.toFixed(1) : "0.0"}
           </span>
         </div>
+        {typeof movie.vote_count === "number" && (
+          <div className="absolute bottom-3 left-3 rounded-full bg-black/55 px-2 py-1 text-[11px] text-white/90">
+            {movie.vote_count.toLocaleString()} votes
+          </div>
+        )}
       </div>
 
       {/* CONTENT */}

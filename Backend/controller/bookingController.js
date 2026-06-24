@@ -1,5 +1,6 @@
 const Booking = require("../Models/Booking");
 const Show = require("../Models/Show");
+const Movie = require("../Models/Movie");
 const razorpay = require("../config/razorpay");
 
 // GET bookings for logged-in user
@@ -33,6 +34,10 @@ exports.createRazorpayOrder = async (req, res) => {
     const show = await Show.findById(showId);
     if (!show) {
       return res.status(404).json({ message: "Show not found" });
+    }
+
+    if (new Date(show.showDateTime) <= new Date()) {
+      return res.status(400).json({ message: "Cannot book a show that has already started or ended" });
     }
 
     const occupiedSeats = show.occupiedSeats instanceof Map
@@ -94,6 +99,10 @@ exports.createBooking = async (req, res) => {
       return res.status(404).json({ message: "Show not found" });
     }
 
+    if (new Date(show.showDateTime) <= new Date()) {
+      return res.status(400).json({ message: "Cannot book a show that has already started or ended" });
+    }
+
     if (!(show.occupiedSeats instanceof Map)) {
       show.occupiedSeats = new Map(Object.entries(show.occupiedSeats || {}));
     }
@@ -125,6 +134,10 @@ exports.createBooking = async (req, res) => {
       customerPhone,
       paymentId,
       isPaid: true,
+    });
+
+    await Movie.findByIdAndUpdate(show.movie, {
+      $inc: { vote_count: bookedSeats.length },
     });
 
     res.status(201).json(booking);

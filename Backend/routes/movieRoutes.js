@@ -5,6 +5,7 @@ const {
   getMovieById,
   createMovie,
   createMovieUpload,
+  updateMovie,
 } = require("../controller/movieController");
 
 const protect = require("../Middleware/authmiddleware");
@@ -17,6 +18,16 @@ router.get("/:id", getMovieById);
 
 // Admin (Protected)
 router.post("/", protect, adminOnly, createMovie);
+router.put(
+  "/:id",
+  protect,
+  adminOnly,
+  upload.fields([
+    { name: "poster", maxCount: 1 },
+    { name: "backdrop", maxCount: 1 },
+  ]),
+  updateMovie
+);
 router.post(
   "/upload",
   protect,

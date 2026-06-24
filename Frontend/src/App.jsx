@@ -21,6 +21,7 @@ import AddShows from './pages/Admin/AddShows'
 import AddMovie from './pages/Admin/AddMovie'
 import ListBookings from './pages/Admin/ListBookings'
 import ListShows from './pages/Admin/ListShows'
+import ListMovies from './pages/Admin/ListMovies'
 import AddTrailer from './pages/Admin/AddTrailer'
 import AdminProfile from './pages/Admin/AdminProfile'
 import ManageUsers from './pages/Admin/ManageUsers'
@@ -53,6 +54,7 @@ const App = () => {
           <Route index element={<Dashboard />} />
           <Route path='add-movie' element={<AddMovie />} />
           <Route path='add-shows' element={<AddShows />} />
+          <Route path='list-movies' element={<ListMovies />} />
           <Route path='add-trailer' element={<AddTrailer />} />
           <Route path='profile' element={<AdminProfile />} />
           <Route path='manage-users' element={<ManageUsers />} />

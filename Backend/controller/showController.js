@@ -94,3 +94,31 @@ exports.createShows = async (req, res) => {
     res.status(400).json({ message: "Failed to create shows" });
   }
 };
+
+exports.updateShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { showPrice, showDateTime } = req.body;
+
+    if (showPrice === undefined && !showDateTime) {
+      return res.status(400).json({ message: "Nothing to update" });
+    }
+
+    const payload = {};
+    if (showPrice !== undefined) payload.showPrice = showPrice;
+    if (showDateTime) payload.showDateTime = showDateTime;
+
+    const updatedShow = await Show.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+    }).populate("movie");
+
+    if (!updatedShow) {
+      return res.status(404).json({ message: "Show not found" });
+    }
+
+    res.status(200).json(updatedShow);
+  } catch (error) {
+    res.status(400).json({ message: "Failed to update show" });
+  }
+};

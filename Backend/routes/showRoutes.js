@@ -4,6 +4,7 @@ const {
   getShowById,
   getShowsByMovie,
   createShows,
+  updateShow,
 } = require("../controller/showController");
 const protect = require("../Middleware/authmiddleware");
 const adminOnly = require("../Middleware/adminMiddleware");
@@ -17,5 +18,6 @@ router.get("/:id", getShowById);
 
 // Admin (Protected)
 router.post("/", protect, adminOnly, createShows);
+router.put("/:id", protect, adminOnly, updateShow);
 
 module.exports = router;

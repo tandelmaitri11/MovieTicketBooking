@@ -7,11 +7,15 @@ const buildShowDateMap = (shows = []) => {
     const dateKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 
     if (!dateMap[dateKey]) dateMap[dateKey] = [];
+    const showDate = new Date(show.showDateTime);
+    const isExpired = showDate <= new Date();
+
     dateMap[dateKey].push({
       time: show.showDateTime,
       showId: show._id,
       showPrice: show.showPrice,
       occupiedSeats: show.occupiedSeats || {},
+      isExpired,
     });
   });
 
